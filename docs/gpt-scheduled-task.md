@@ -15,7 +15,9 @@
 
 1. 读取目标分支最新提交中的 docs/publishing-contract.md、sources.json、
    topics.json 和 state/articles.json。来源数组为空时直接结束，报告无已配置来源。
-2. 从已配置的 Feed 拉取条目，按契约规范化原文 URL 并去重。优先处理到期
+2. 从已配置的官方 RSS、Atom 或技术文章索引发现条目，按契约规范化原文 URL
+   并去重。只收录官方团队发布且正文有具体架构、实现、方法或工程复盘的文章。
+   跳过 API 文档、纯产品公告和只列评测结果的发布稿。优先处理到期
    的 retry 和已有 pending，随后按原文时间从新到旧处理新条目。首轮回溯
    范围只应用于新条目。跳过 published、held 和尚未到期的 retry。保留已发现
    且超出本批上限的新条目为 pending。若来源拉取失败或链接跳出允许域名，

@@ -1,3 +1,54 @@
 {
-  "sources": []
+  "sources": [
+    {
+      "id": "openai-engineering",
+      "name": "OpenAI Engineering",
+      "language": "en",
+      "feed": "https://openai.com/news/engineering/rss.xml",
+      "hosts": [
+        "openai.com"
+      ],
+      "allow_full_translation": false
+    },
+    {
+      "id": "anthropic-engineering",
+      "name": "Anthropic Engineering",
+      "language": "en",
+      "feed": "https://www.anthropic.com/engineering",
+      "hosts": [
+        "www.anthropic.com"
+      ],
+      "allow_full_translation": false
+    },
+    {
+      "id": "deepseek-research",
+      "name": "DeepSeek 研究与动态",
+      "language": "zh",
+      "feed": "https://www.deepseek.com/zh/news/",
+      "hosts": [
+        "www.deepseek.com"
+      ],
+      "allow_full_translation": false
+    },
+    {
+      "id": "zhipu-research",
+      "name": "智谱研究",
+      "language": "zh",
+      "feed": "https://www.zhipuai.cn/zh/research",
+      "hosts": [
+        "www.zhipuai.cn"
+      ],
+      "allow_full_translation": false
+    },
+    {
+      "id": "kimi-research",
+      "name": "Kimi 研究博客",
+      "language": "en",
+      "feed": "https://www.kimi.com/en/blog/",
+      "hosts": [
+        "www.kimi.com"
+      ],
+      "allow_full_translation": false
+    }
+  ]
 }

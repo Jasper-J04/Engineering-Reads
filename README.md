@@ -2,7 +2,7 @@
 
 Engineering Reads 是一个面向中文读者的技术阅读站。Python 和 Pelican 将 Markdown、Jinja2 模板和 CSS 构建为静态网站，提供按收录时间排序的首页、文章、主题、归档和 RSS。
 
-发布链路为 **GPT 定时任务 → GitHub 提交 → Cloudflare Pages 构建**。文章整理使用 ChatGPT 套餐额度。首阶段提供自建演示稿，真实来源和采集范围留待上线阶段确定。
+发布链路为 **GPT 定时任务 → GitHub 提交 → Cloudflare Pages 构建**。文章整理使用 ChatGPT 套餐额度。演示站提供两篇自建示例。正式来源已确认，首批文章待审核后导入。
 
 ## 本地构建
 
@@ -34,12 +34,12 @@ python3.12 -m venv .venv
 
 ## 内容和定时任务
 
-- `sources.json` 管理来源 ID、语言、Feed、允许域名和全文翻译权限。
+- `sources.json` 管理来源 ID、语言、官方 RSS 或技术文章索引、允许域名和全文翻译权限。
 - `topics.json` 管理主题 ID 和中文名称。
 - `content/posts/` 保存稿件，`state/articles.json` 保存去重键和处理状态。
 - `theme/` 包含站点模板和样式。
 
-使用[发布契约](docs/publishing-contract.md)编写稿件和状态。将 [GPT 定时任务指令](docs/gpt-scheduled-task.md)复制到你配置的定时任务。现阶段空来源清单对应的一次运行会直接结束。
+使用[发布契约](docs/publishing-contract.md)编写稿件和状态。将 [GPT 定时任务指令](docs/gpt-scheduled-task.md)复制到你配置的定时任务。当前来源由维护者手动筛选，正式站点从空稿件状态启动。
 
 ## Cloudflare Pages 部署参数
 

@@ -4,7 +4,7 @@
 
 ## 来源与主题
 
-`sources.json` 的 `sources` 是来源数组，默认为空。每个来源的字段为 `id`、`name`、`language`、`feed`、`hosts`、`allow_full_translation`。来源 ID 唯一，由小写英数字和连字符组成。语言为 `en` 或 `zh`，`feed` 为 HTTPS URL，`hosts` 列出文章允许的准确小写域名。全文翻译权限由维护者审核后设置。
+`sources.json` 的 `sources` 是来源数组。每个来源的字段为 `id`、`name`、`language`、`feed`、`hosts`、`allow_full_translation`。来源 ID 唯一，由小写英数字和连字符组成。语言为 `en` 或 `zh`，`feed` 为官方 RSS、Atom 或技术文章索引的 HTTPS URL，`hosts` 列出文章允许的准确小写域名。全文翻译权限由维护者审核后设置。
 
 `topics.json` 将稳定的主题 ID 映射到中文标签。文章从这个清单选择 1 至 5 个不同主题，按逗号和空格分隔。
 

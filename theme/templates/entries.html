@@ -1,0 +1,41 @@
+{% macro topic_links(entry, topics) %}
+  {% if entry.tags %}
+  <ul class="topic-list" aria-label="文章主题">
+    {% for tag in entry.tags %}
+    <li><a class="topic" href="/{{ tag.url }}">{{ topics[tag.name] }}</a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+{% endmacro %}
+
+{% macro entry_list(entries, sources, topics) %}
+  <ol class="entries">
+    {% for entry in entries %}
+    <li class="entry">
+      <time class="entry-date" datetime="{{ entry.date.isoformat() }}">{{ entry.locale_date }}</time>
+      <article>
+        <h2 class="entry-title"><a href="/{{ entry.url }}">{{ entry.title }}</a></h2>
+        <p class="entry-source">{{ sources[entry.source].name }}</p>
+        <div class="entry-summary">{{ entry.summary | safe }}</div>
+        {{ topic_links(entry, topics) }}
+      </article>
+    </li>
+    {% endfor %}
+  </ol>
+{% endmacro %}
+
+{% macro pagination(page, previous, next) %}
+  {% if previous or next %}
+  <nav class="pagination" aria-label="分页">
+    {% if previous %}
+    <a href="/{{ previous.url.lstrip('/') }}" rel="prev">← 上一页</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+    <span>第 {{ page.number }} / {{ page.paginator.num_pages }} 页</span>
+    {% if next %}
+    <a href="/{{ next.url.lstrip('/') }}" rel="next">下一页 →</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+{% endmacro %}

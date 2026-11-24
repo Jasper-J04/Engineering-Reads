@@ -1,0 +1,20 @@
+{
+  "sources": [
+    {
+      "id": "example-engineering",
+      "name": "工程示例 · 英文",
+      "language": "en",
+      "feed": "https://example.org/feeds/engineering.xml",
+      "hosts": ["example.org"],
+      "allow_full_translation": false
+    },
+    {
+      "id": "example-notes",
+      "name": "工程示例 · 中文",
+      "language": "zh",
+      "feed": "https://example.org/feeds/notes.xml",
+      "hosts": ["example.org"],
+      "allow_full_translation": false
+    }
+  ]
+}

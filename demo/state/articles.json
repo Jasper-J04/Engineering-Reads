@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "articles": {
+    "https://example.org/engineering/queue-deduplication": {
+      "source": "example-engineering",
+      "status": "published",
+      "attempts": 1,
+      "slug": "queue-deduplication"
+    },
+    "https://example.org/notes/database-migrations": {
+      "source": "example-notes",
+      "status": "published",
+      "attempts": 1,
+      "slug": "safe-database-migrations"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "entries.html" import entry_list, pagination %}
+{% set section = "home" %}
+{% block title %}{% if articles_page and articles_page.number > 1 %}第 {{ articles_page.number }} 页 · {% endif %}{{ SITENAME }}{% endblock %}
+{% block canonical_path %}/{% if articles_page and articles_page.number > 1 %}{{ articles_page.url.lstrip('/') }}{% endif %}{% endblock %}
+{% block content %}
+  {% set entries = articles_page.object_list if articles_page else articles %}
+  <div class="reading-index with-sidebar">
+    <section aria-labelledby="latest">
+      <header class="page-header">
+        <h1 id="latest">最新收录</h1>
+      </header>
+      {% if entries %}
+      {{ entry_list(entries, SOURCES, TOPICS) }}
+      {{ pagination(articles_page, articles_previous_page, articles_next_page) }}
+      {% else %}
+      <div class="empty">
+        <p>目前还没有收录文章。</p>
+        <a href="/about/">了解本站</a>
+      </div>
+      {% endif %}
+    </section>
+    <aside class="sidebar" aria-label="浏览文章">
+      {% if tags %}
+      <section aria-labelledby="browse-topics">
+        <h2 class="section-title" id="browse-topics">主题</h2>
+        <ul class="sidebar-topics">
+          {% for tag, entries in tags | sort(attribute="0.name") %}
+          <li><a href="/{{ tag.url }}">{{ TOPICS[tag.name] }} <span>{{ entries | length }} 篇</span></a></li>
+          {% endfor %}
+        </ul>
+        <a class="text-link" href="/tags/">全部主题</a>
+      </section>
+      {% endif %}
+      <section aria-labelledby="browse-archive">
+        <h2 class="section-title" id="browse-archive">归档</h2>
+        <a class="text-link" href="/archives/">按月浏览</a>
+      </section>
+    </aside>
+  </div>
+{% endblock %}

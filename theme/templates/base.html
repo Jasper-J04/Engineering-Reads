@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}{{ SITENAME }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}{{ SITEDESCRIPTION }}{% endblock %}">
+  {% if DEMO or PREVIEW %}<meta name="robots" content="noindex, nofollow">{% endif %}
+  {% if SITEURL and not DEMO and not PREVIEW %}
+  <link rel="canonical" href="{{ SITEURL }}{% block canonical_path %}/{% endblock %}">
+  {% endif %}
+  <link rel="alternate" type="application/rss+xml" title="{{ SITENAME }} RSS" href="/rss.xml">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="/" lang="en">{{ SITENAME }}</a>
+      <nav class="site-nav" aria-label="主导航">
+        <a href="/"{% if section == "home" %} aria-current="page"{% endif %}>首页</a>
+        <a href="/tags/"{% if section == "tags" %} aria-current="page"{% endif %}>主题</a>
+        <a href="/archives/"{% if section == "archives" %} aria-current="page"{% endif %}>归档</a>
+        <a href="/about/"{% if section == "about" %} aria-current="page"{% endif %}>关于</a>
+        <a class="rss-link" href="/rss.xml" aria-label="订阅 RSS">RSS <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="shell site-main" tabindex="-1">
+    {% if DEMO %}<p class="demo-notice">演示站 · 文章和原文链接均为占位示例</p>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <a href="/" lang="en">{{ SITENAME }}</a>
+      <a href="/rss.xml">订阅 RSS <span aria-hidden="true">↗</span></a>
+    </div>
+  </footer>
+</body>
+</html>

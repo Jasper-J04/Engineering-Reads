@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% set section = "tags" %}
+{% block title %}主题 · {{ SITENAME }}{% endblock %}
+{% block canonical_path %}/tags/{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <h1>主题</h1>
+  </header>
+  {% if tags %}
+  <ul class="topic-grid">
+    {% for tag, entries in tags | sort(attribute="0.name") %}
+    <li>
+      <a href="/{{ tag.url }}"><span>{{ TOPICS[tag.name] }}</span><span>{{ entries | length }} 篇 <span aria-hidden="true">↗</span></span></a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty">
+    <p>暂无主题。收录文章后，主题会显示在这里。</p>
+    <a href="/">返回首页 →</a>
+  </div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% set section = "about" %}
+{% block title %}关于 · {{ SITENAME }}{% endblock %}
+{% block canonical_path %}/about/{% endblock %}
+{% block content %}
+  <div class="reading-page">
+    <header class="page-header">
+      <h1>关于本站</h1>
+      <p>{{ SITEDESCRIPTION }}。</p>
+    </header>
+    <div class="prose">
+      <h2>收录与整理</h2>
+      <p>外文文章提供中文导读，中文文章提炼技术要点。整理以原文为依据，关注解决的问题、方法与适用条件。每篇文章保留原文入口，便于核对上下文。</p>
+      <h2>署名与转载</h2>
+      <p>文章页标注可核实的作者、原文日期和许可。全文译稿需取得翻译再发布授权，并遵循原作品的署名及其他许可条件。</p>
+      <h2>更正与订阅</h2>
+      <p>如发现错误，可以在 <a href="https://github.com/Jasper-J04/Engineering-Reads/issues" rel="external">项目 Issues</a> 中附上文章地址和更正依据。使用 <a href="/rss.xml">RSS</a> 订阅更新。</p>
+    </div>
+  </div>
+{% endblock %}

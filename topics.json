@@ -1,0 +1,13 @@
+{
+  "backend": "后端",
+  "architecture": "软件架构",
+  "frontend": "前端",
+  "infrastructure": "基础设施",
+  "distributed-systems": "分布式系统",
+  "databases": "数据库",
+  "performance": "性能优化",
+  "security": "安全",
+  "ai": "人工智能",
+  "engineering": "工程实践",
+  "languages": "编程语言"
+}

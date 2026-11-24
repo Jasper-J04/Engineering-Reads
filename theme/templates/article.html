@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "entries.html" import topic_links %}
+{% set kinds = {"guide": "外文导读", "digest": "中文技术整理", "translation": "全文译稿"} %}
+{% block title %}{{ article.title }} · {{ SITENAME }}{% endblock %}
+{% block description %}{{ article.summary | striptags }}{% endblock %}
+{% block canonical_path %}/{{ article.url }}{% endblock %}
+{% block content %}
+  <article class="reading-page">
+    <header class="post-header">
+      <p class="post-byline">{{ kinds[article.kind] }} <span aria-hidden="true">/</span> <span>收录于 <time datetime="{{ article.date.isoformat() }}">{{ article.locale_date }}</time></span></p>
+      <h1>{{ article.title }}</h1>
+      <div class="post-standfirst">{{ article.summary | safe }}</div>
+      {{ topic_links(article, TOPICS) }}
+    </header>
+
+    <aside class="source-card" aria-labelledby="source-title">
+      <p class="source-label" id="source-title">原文出处 · {{ SOURCES[article.source].name }}</p>
+      <a class="source-title" href="{{ article.source_url }}" rel="external">{{ article.source_title }} <span aria-hidden="true">↗</span></a>
+      {% if article.source_author or article.source_date or article.source_license %}
+      <dl class="source-details">
+        {% if article.source_author %}
+        <div><dt>原文作者</dt><dd>{{ article.source_author }}</dd></div>
+        {% endif %}
+        {% if article.source_date %}
+        <div><dt>原文日期</dt><dd><time datetime="{{ article.source_date }}">{{ article.source_date }}</time></dd></div>
+        {% endif %}
+        {% if article.source_license %}
+        <div><dt>许可</dt><dd>
+          {% if article.source_license_url %}<a href="{{ article.source_license_url }}" rel="external">{{ article.source_license }}</a>
+          {% else %}{{ article.source_license }}{% endif %}
+        </dd></div>
+        {% endif %}
+      </dl>
+      {% endif %}
+    </aside>
+
+    <div class="prose">{{ article.content | safe }}</div>
+    <p class="post-back"><a href="/archives/">← 返回归档</a></p>
+  </article>
+{% endblock %}

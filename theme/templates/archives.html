@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% set section = "archives" %}
+{% block title %}归档 · {{ SITENAME }}{% endblock %}
+{% block canonical_path %}/archives/{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <h1>归档</h1>
+    <p>按收录年月浏览往期文章。</p>
+  </header>
+  {% if dates %}
+  <div class="archive">
+    {% for month, entries in dates | groupby("locale_date", default="") | reverse %}
+      {% if loop.changed(month[:7]) %}
+        {% if not loop.first %}</ul></section>{% endif %}
+        <section class="archive-month">
+          <h2>{{ month[:4] }} 年 {{ month[5:7] | int }} 月</h2>
+          <ul>
+      {% endif %}
+      {% for entry in entries %}
+          <li><time datetime="{{ entry.date.isoformat() }}">{{ entry.locale_date }}</time><a href="/{{ entry.url }}">{{ entry.title }}</a></li>
+      {% endfor %}
+      {% if loop.last %}</ul></section>{% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <p>暂无归档文章。</p>
+    <a href="/">返回首页 →</a>
+  </div>
+  {% endif %}
+{% endblock %}

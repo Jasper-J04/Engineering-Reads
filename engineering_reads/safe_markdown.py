@@ -13,7 +13,18 @@ def filter_attribute(tag, attribute, value):
             url = urlsplit(value)
         except ValueError:
             return None
-        if url.scheme != "https" or url.netloc != "assets.claude.com":
+        local_figure = (
+            not url.scheme and not url.netloc
+            and url.path.startswith("/images/articles/")
+            and url.path.endswith((".png", ".jpg"))
+            and ".." not in url.path.split("/")
+        )
+        official_figure = url.scheme == "https" and (
+            url.netloc == "assets.claude.com"
+            or (url.netloc == "images.ctfassets.net" and url.path.startswith("/kftzwdyauwt9/"))
+            or (url.netloc == "www.zhipuai.cn" and url.path.startswith("/api/media/file/"))
+        )
+        if not (local_figure or official_figure):
             return None
     return value
 

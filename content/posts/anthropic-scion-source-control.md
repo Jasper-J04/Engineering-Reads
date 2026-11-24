@@ -6,32 +6,127 @@ Tags: distributed-systems, infrastructure, engineering
 Source: anthropic-engineering
 Source_url: https://www.anthropic.com/research/redesigning-source-control
 Source_title: Redesigning source control at Anthropic
-Kind: guide
+Kind: translation
 Source_date: 2026-10-13
 Source_author: Nick G. and the Anthropic source control team
 
-Anthropic 工程团队在单体仓库增长过程中遇到了大量并发变更。Scion 的出发点是把保存变更、移动分支指针和读历史索引拆成各自独立的问题。
+<figure>
+  <img src="https://assets.claude.com/cfb6c0671a1e04252d55fc3c6776daad399e8356.jpg?w=1920&amp;q=75&amp;fm=webp&amp;fit=max" alt="原文封面">
+  <figcaption>原文封面</figcaption>
+</figure>
 
-## 快照和变更日志
+10 月 15 日更新：补充了哪些先行项目开创了 Scion 使用的多项技术。
 
-Git 提交指向一棵目录树，可以用它解释当时完整的文件结构。Scion 的 changeset 保存相对第一个父提交发生变化的文件列表，文件内容压缩后存入对象存储，变更通过由内容决定的地址引用它们。changeset 是预写日志里一条记录，存储系统可以据此追加变更。
+在 Anthropic，写代码已经很少是构建系统或开展研究的瓶颈。Claude 可以自主迭代研究流程、细调复杂程序，也能从头构建服务。新的瓶颈是按人类工作节奏设计的开发基础设施，包括版本控制、构建和 CI。
 
-## 保存变更与移动分支分别执行
+2026 年 5 月，我们每天平均合并约 2,500 项代码变更，9 月已超过 30,000 项。每解决一个瓶颈，积压的需求就会推动代码量继续增长。
 
-Scion 在服务端生成 changeset，创建与读取提交时无需先移动分支引用。需要更新引用时，服务在 Spanner 中对单行执行比较并交换。它先检查分支仍指向调用者预期的旧值，匹配才写入新值。这样并发修改不会默默覆盖彼此的引用更新。
+<figure>
+  <img src="https://assets.claude.com/1e2a750dba61db4a76b72eec5b0cf50b8a7f878c.png?w=3840&amp;q=75&amp;fm=webp&amp;fit=max" alt="2026 年 1 月至 9 月，单体仓库每日合并的变更。">
+  <figcaption>2026 年 1 月至 9 月，单体仓库每日合并的变更。</figcaption>
+</figure>
 
-## 为历史查询预计算数据
+为支撑增长，我们开发了内部版本控制系统 Scion，在五个月内将单体仓库从 Git 完整迁移。这期间还交付了代码审核工具 Antique、代码搜索、版本控制的身份与权限管理，以及管理、落地大量已审核变更的方法。本文聚焦 Scion。Claude 写代码的能力带来这项扩容压力，也让我们能够迅速构建解决方案。
 
-变更日志容易追加，不过回答「某一行最后由谁修改」时，逐条重放会很慢。Scion 从父提交及当前变更递推计算派生数据，例如文件行历史、路径历史或提交图索引。团队还讨论了检出架构以及对原生 Scion 仓库观察到的性能变化，原图提供比较口径。
+## 单体仓库不断增长
 
-把写入路径做短，需要在读取和索引维护上付出相应成本。如果要保留标准 Git 客户端，可以比较 [OpenAI 的 Pando](/posts/openai-pando-git/) 如何在 Git 协议内处理并发与读取。
+首先要承认，我们的工作负载少见。Anthropic 大量用 Claude 写软件，往往很早就看到面向人类规模的工具开始吃紧。我们预计其他组织短期内不会普遍遇到同样的问题，但随着 AI 编码工具普及，类似压力可能逐渐出现。
 
-## 原文插图
+Git 是去中心化系统。每次克隆会得到自包含的仓库，可以离线计算差异、查历史和逐行归因，或者检出任意版本。大多数仓库很适合这种设计，它也帮助 Git 成为行业标准。
 
-- [封面插画](<https://assets.claude.com/cfb6c0671a1e04252d55fc3c6776daad399e8356.jpg?w=1920&q=75&fm=webp&fit=max>)
-- [单体仓库每日合并量](<https://assets.claude.com/1e2a750dba61db4a76b72eec5b0cf50b8a7f878c.png?w=3840&q=75&fm=webp&fit=max>)
-- [传统 Git 检出扩展架构](<https://assets.claude.com/ff019752973f6d83d2f6ba3bf56636aced3ea82c.png?w=3840&q=75&fm=webp&fit=max>)
-- [Scion changeset 的结构](<https://assets.claude.com/71c83868210b4b571abb068ea4cd76de749566b1.png?w=3840&q=75&fm=webp&fit=max>)
-- [Scion 检出架构](<https://assets.claude.com/cba1eaaa67385fd00f210badaacd147de480120b.png?w=3840&q=75&fm=webp&fit=max>)
-- [Scion 与 Antique 每周变更量](<https://assets.claude.com/dd91296719203f38229824bb9bc9e9a61c76ed67.png?w=3840&q=75&fm=webp&fit=max>)
-- [原生 Scion 仓库性能](<https://assets.claude.com/c706fa6efb4b9e5cd2566cb080acbfce7218042d.png?w=3840&q=75&fm=webp&fit=max>)
+我们的单体仓库却越来越偏离这些前提。仅主分支历史就接近 100 GB，压缩工作副本超过 25 GB。每天 CI 约检出 2,500 万次，尚未计入开发环境、智能体沙箱和研究任务。如果每次按朴素方式获取，每天传输会超过 600 PB。
+
+我们试过浅克隆、稀疏检出、按需取对象的 promisor remote，也用过内部镜像以及存放于对象存储的仓库快照。高峰时运维了数百个镜像。这些方式争取到了时间，但合并越快，快照在两次刷新间就越落后，部分克隆上需要历史的 diff 和 blame 也越难保持正常。
+
+<figure>
+  <img src="https://assets.claude.com/ff019752973f6d83d2f6ba3bf56636aced3ea82c.png?w=3840&amp;q=75&amp;fm=webp&amp;fit=max" alt="扩展 Git 检出时的典型配置。">
+  <figcaption>扩展 Git 检出时的典型配置。</figcaption>
+</figure>
+
+实际上，我们像多数公司那样集中使用 Git，只有一个权威副本。客户端却几乎都是持续在线的任务或智能体。既然不用让它们离线处理完整仓库，能否从这个前提出发设计版本控制？
+
+## 面向智能体规模的原则
+
+Google Piper 和 Meta Sapling 等大型单仓方案提供了先例。Scion 在它们积累的经验基础上采用了以下原则。
+
+- **客户端始终在线。** 服务端应可随时访问，客户端需要数据才去请求。
+- **客户端和服务端各司其职。** 服务端计算历史与逐行归因，创建提交、合并和变基。客户端维护有限的对象缓存，管理工作副本文件，监视文件系统变化，并提供操作入口。
+- **版本控制能力可通过 API 获取。** 以往 CI 为了查询一行代码由谁修改，或两个提交是什么关系，需要本地副本或依赖特定提供商的 API。Scion 将客户端使用的查询全部公开给内部调用者。内部自动二分定位和回退流程便依赖快速的程序化查询。
+- **所有组件能横向扩容。** 过去数百个 Git 镜像消耗很多资源，仓库长到单机磁盘或内存装不下时就无法继续。Scion 数据分布存储，各组件分别扩容，没有任何位置要求物化全库，也没有 Git 打包文件的定期维护。
+- **提交应当便宜、增量且无锁。** 提交、变基和合并都由服务端完成。创建提交与更新派生数据的代价应与改动量相关。除主分支或发布分支外，Scion 尽量少用全局引用，服务器之间需要达成一致的全局状态会成为限制。
+- **工作副本可选，默认支持稀疏。** CI 可以通过 API 请求提交和共同合并基点间的差异，许多写入也能直接走 API。需要磁盘文件时，稀疏检出只取所需目录，虚拟检出则等到访问文件再物化。
+
+## Scion 怎样工作
+
+### 数据结构
+
+基本单位是 changeset，即预写日志中的一条记录。和 Git 提交相似，它会保存变更元数据。不过，Git 提交指向整棵树；Scion 记录相对第一父提交变化的文件，并以内容寻址的指针指向对象存储中压缩过的文件。变更由服务端创建，并能立即供各处读取。
+
+<figure>
+  <img src="https://assets.claude.com/71c83868210b4b571abb068ea4cd76de749566b1.png?w=3840&amp;q=75&amp;fm=webp&amp;fit=max" alt="Scion 的 changeset 结构。">
+  <figcaption>Scion 的 changeset 结构。</figcaption>
+</figure>
+
+写入时无需接收 packfile、加锁、跨服务器协调或移动引用，可以接收大量变更。分支引用仍受支持，但创建和获取提交时不依赖它；移动引用是独立步骤，用 Spanner 单行比较并交换实现。
+
+只保存变化时，无法单靠一条记录快速回答「谁最后改了这一行」或「哪些提交影响过这个文件」。Scion 另外计算逐行归因、路径历史和提交图跳表等派生数据。每类数据都可以递归地由父提交的相应数据算出。
+
+这种设计便于增加新的派生数据；各类数据可以选择提前或延后计算，节省不必要的物化；客户端看不到内部构造，服务端优化无需改动客户端。系统成长后，我们又加入了用于检测复制、按路径查找文件的索引。
+
+### 扩展 Scion
+
+一组 Scion 服务器提供查询 changeset、计算差异、寻找合并基点和获取对象等 API。数据按内容寻址，写入后不变，服务器可独立缓存，几乎不用相互协调。它们相当于能够按需计算派生值并回写 Spanner 的缓存。
+
+CI 和工具不再需要自己维护本地仓库。迁移早期尚没有独立客户端、格式或协议，Scion 先承接历史关系和逐行归因等元数据查询。文件内容和工作副本的吞吐需求则更高。
+
+Scion 客户端协商时，直接请求想要的树和对象。它从根树开始，在本地查缺失的子树并递归请求，随后取缺失的文件对象。请求都是针对不会变化的单个对象，任意缓存均可回答。这样可以恢复中断的下载，也避免生成一份数 GB 的单体包。稀疏与虚拟检出只需跳过用不到的树。
+
+同一机器上的任务经 socket 连接 `scion-daemon`，复用节点缓存。守护进程从定期刷新的快照启动，并请求区域 `scion-cache`。区域缓存直接从内存流式传输可直接写盘的对象，不需要计算缺失集合或做增量压缩；缓存缺失时才找权威 `scion-server`，后者按需从 Spanner 或云存储获取。
+
+各层使用同一组 RPC，所以客户端无须了解拓扑。实际部署严格限制跨层路径，避免区域缓存故障时请求集中压垮上游。
+
+<figure>
+  <img src="https://assets.claude.com/cba1eaaa67385fd00f210badaacd147de480120b.png?w=3840&amp;q=75&amp;fm=webp&amp;fit=max" alt="Scion 的多层检出架构。">
+  <figcaption>Scion 的多层检出架构。</figcaption>
+</figure>
+
+各层缓存命中率超过 99%，无需长期状态，易于扩容。按 CPU 与内存开销，Scion 基础设施规模约为原 Git 镜像方案的二百分之一。CI 和研究任务的检出从分钟级变为秒级，CI 单独节省了约 25% CPU 容量。客户端和缓存都省去了仓库维护。
+
+## 构建 Scion 学到的经验
+
+Claude Mythos Preview 和 Claude Tag 内部可用的时间与 Scion 开发接近。它们同时加大了对 Scion 的需求，也加快了实现。我们的 Git 到 Scion 导入流水线首版多为手写。让早期 Mythos Preview 重写后，它保留导入顺序和数据结构的隐含约束，内存降到约二十分之一，速度达到四倍。
+
+<figure>
+  <img src="https://assets.claude.com/dd91296719203f38229824bb9bc9e9a61c76ed67.png?w=3840&amp;q=75&amp;fm=webp&amp;fit=max" alt="2026 年 1 月至 9 月，Scion 和 Antique 代码库每周合并量。">
+  <figcaption>2026 年 1 月至 9 月，Scion 和 Antique 代码库每周合并量。</figcaption>
+</figure>
+
+- **小团队可以更快开发。** 七人用了五个月构建 Scion、Antique 和多项配套系统并完成迁移，同期每天合并量约增长十倍。传统情况下，这种迁移可能要更多工程师迭代数年。
+- **工程师的工作重心在变。** 团队认为 Claude 已很擅长编码，工程师仍负责理解系统间关系与权衡，并阻止破坏关键约束的改动。迁移时，有些系统想线性扫描提交找合并时间，其实可以查代码审核服务。独立复核有价值，但也可能过于局部，针对假设中的问题增加复杂度。例如，一次复核对另一个内部服务过度不信任，导致多余校验。人依旧查看每个改动请求，更关注意图。
+- **有余力把测试和优化做深。** 即使工期紧，团队也建立了独立仿真、模糊测试和限流能力。Claude 还发现过遗漏某个索引的祖先查询优化；过去类似工作可能要专家分析数天或数周。
+
+<figure>
+  <img src="https://assets.claude.com/c706fa6efb4b9e5cd2566cb080acbfce7218042d.png?w=3840&amp;q=75&amp;fm=webp&amp;fit=max" alt="原生 Scion 仓库中观测到的性能改善。">
+  <figcaption>原生 Scion 仓库中观测到的性能改善。</figcaption>
+</figure>
+
+- **可重做单仓的安全机制。** Scion 支持仓库级及目录级权限。审核工具还可以表达复杂批准条件，例如区分只改注释与修改敏感逻辑，让人工注意力集中到重要改动。
+- **运维也能进一步细化。** 团队用 Claude Tag 持续观察各组件，在 Slack 为守护进程、区域缓存、Antique 合并队列各配专注监控的智能体。它们可以从遥测和日志发现细微或新型异常，系统仍保留常规告警。
+- **重新考虑为人类规模设计的流程。** 当测试期间可能合入几百乃至上千项改动时，依赖全局仓库锁的传统合并队列难以复制。团队投资于合并后和部署前的自动测试。并发改动仍可能冲突，Claude 往往能快速处理。
+
+## 对更广泛生态的贡献
+
+Scion 主要适用于规模极大的单仓，使用者可能是上万名工程师，或持续高强度写代码的智能体群。Anthropic 的内部 token 使用条件也很特殊。Scion 与 Git 差异较大，采用者需要迁移版本控制、审核、搜索、CI 等环节。我们的内部组件高度定制，很难直接给其他组织使用。
+
+我们预计接下来六至十二个月，类似问题会更普遍，每个团队单独面对并不划算。因而希望分享可迁移的思路：Git 服务端无需和客户端采用同一结构，可以用新架构扩容；托管平台也可提供更丰富的服务端 RPC，未来甚至可能标准化；对象协商、稀疏和浅克隆也都有改进与组合的空间。
+
+Git 社区近二十年来让数百万开发者能够扩展这套工具。本文分享的是智能体参与开发后，Anthropic 较早看到的一组问题与解法。我们希望与 GitHub、GitLab 和开源社区一起支持不断变化的开发需求。
+
+## 脚注
+
+1. 合并时以第一父提交为基准记录修改，是团队选择的做法。使用主干开发的大仓库中，历史和逐行归因主要关心主线提交。
+2. Sapling 的服务端组件 Mononoke 开创了 Scion 借鉴的多项技术，尤其是 Bonsai 数据模型。
+
+## 作者与致谢
+
+原文由 Nick G. 和源代码管理团队撰写，感谢 Vilas J.、Sergiu D. 对项目的支持，以及 Amir O. 对 Antique 的早期贡献。

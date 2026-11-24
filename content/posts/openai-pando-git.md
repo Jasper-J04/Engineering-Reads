@@ -6,37 +6,165 @@ Tags: distributed-systems, infrastructure, engineering
 Source: openai-engineering
 Source_url: https://openai.com/index/scaling-git-at-openai
 Source_title: Scaling Git at OpenAI
-Kind: guide
+Kind: translation
 Source_date: 2026-11-02
 Source_author: Aaron Friel, Taylor Blau, Ted Nyman
 
-OpenAI 的工程团队面对大量自动化任务同时推送、拉取和克隆仓库的压力。Pando 的设计从一个具体问题开始：Git 客户端看到新的分支指针后，服务端怎样让它拿到背后的对象，同时避免让不同分支的写入彼此等待？
+过去一年，我们的单体仓库和它承受的需求都在快速增长。Codex 让更多工作可以并行开展，版本控制系统需要重做才能跟上。
 
-## Git 对象、引用与打包
+我们构建了新的 Git 后端 Pando，迁移过程没有打断工程工作，也没有改变团队使用 Git 的方式。现在 OpenAI 单体仓库的全部开发都运行在 Pando 上。它有两个目标：让不同分支的并发写入能横向扩展，以及尽可能提高读取吞吐，让客户端下载时用满网络带宽。它兼容 Git 协议和客户端。在线上，推送延迟的中位数降到了原先的约五分之一，每天传输接近 1 PB 的 Git 数据。
 
-提交对象指向一棵目录树和它的父提交。目录树指向文件内容对象或子树。分支引用保存的是提交 ID，像一个可以移动的入口。Git 可以把对象独立存储，也可以将它们装进 packfile，对相似内容只存差异。服务端更新引用时，读者也必须能取到所需的对象。
+<figure>
+  <img src="/images/articles/openai-pando-git-1.png" alt="OpenAI 单体仓库的季度提交量增长。（原文截图）">
+  <figcaption>OpenAI 单体仓库的季度提交量增长。（原文截图）</figcaption>
+</figure>
 
-## 从已有做法到 Pando
+## 为什么需要新的版本控制系统
 
-原文比较了协调多副本的三阶段提交方案，以及以对象存储保存预写日志的方案。设计上的关键是写入何时可读，以及跨副本或跨对象的等待会怎样影响吞吐。Pando 用因果一致性明确可见范围：一个读取者看到某次写入，也应看到这次写入已经依赖的历史。
+Codex 让工程师能同时开展更多工作：更多分支、推送和合并，也有更多来自开发环境、研究任务和 CI 的拉取与克隆。同一次推送可能触发多个作业，而它们又分别拉取同一个提交。
 
-用一个例子理解：主分支推进后，写入者基于新的主分支继续推送功能分支。读取该功能分支的客户端需要依赖的主分支历史。Pando 记录这种依赖；功能分支的包可包含该分支此前的提交，读取端按客户端现有对象和目标引用选包。
+去年年底起，支撑单体仓库的系统已经吃紧。推送和拉取变慢，合并失败，可靠性有时降到 90% 以下。我们想分清，限制究竟来自 Git，还是来自服务单体仓库的方式。Git 起源于内核社区通过邮件交换补丁，二十多年来开发者一直沿用并发展它。我们希望保留这种工作方式，同时改建后端，让不同分支的推送可以并行、同一段历史可以供多个读者并发获取，并把客户端改进反馈给上游。
 
-## Push、Fetch 与后台压实
+### 面向大规模 Git 的工程设计
 
-写入时，Pando 将包保存到对象存储，并在元数据服务记录引用版本。读取时，服务从已存在的包里挑出客户端缺少的范围，包括尚未取得的分支依赖。后台会把多个小包压实为更大的包，改善压缩率与读取效率。
+Pando 分别优化两种并行：多个写入者向不同分支推送，以及多个读取者取得同一段历史。分支的更新独立协调，读取某分支可获得对应版本所需的历史，但同时读多个分支时，它们可能来自不同时间点。读取则复用 packfile，而非为每个客户端即时重打包。少量数据可能重复下载，服务器却能用很少的计算向许多读者提供相同字节。
 
-官方文章的模拟将「写入确认」和「另一个读者能检出该版本」都纳入比较。实际部署中的读写比例、分支结构与包大小会影响收益。另一条设计路线在 [Anthropic 的 Scion](/posts/anthropic-scion-source-control/) 一文中可对照阅读。
+### Git 对象存储基础
 
-## 原文插图
+Git 必须保持**对象**与**引用**同步。对象图保存文件快照与历史，包括 blob、目录树、提交和标签。blob 保存文件内容，树把名称关联到 blob 或子树。提交则指向根树及零个或多个父提交。对象由类型和内容的哈希标识，一旦写入便不变。文件有改动会产生新 blob，没变的文件和目录可以复用原对象。
 
-- [开篇交互图](<https://openai.com/index/scaling-git-at-openai>)
-- [Git 对象与引用关系](<https://images.ctfassets.net/kftzwdyauwt9/2HM5lol94vaZXcGl7zXuf1/96c979a79f2b5971397cf3068a4767da/how-git-objects-reference-each-other-diagram-desktop-light.svg?w=3840&q=90>)
-- [packfile 和增量压缩](<https://images.ctfassets.net/kftzwdyauwt9/4xklltw3tJY3qRk8mzW0l3/f7f44a2cb856b00677a31506465e6d1a/storing-git-objects-in-packfiles-diagram-desktop-light.svg?w=3840&q=90>)
-- [主分支与功能分支的包](<https://images.ctfassets.net/kftzwdyauwt9/5wDkqDPp9fjzOjtAQRDRzw/117b2f107fd11818f7e9154c958b0878/representing-branches-in-pando-diagram-desktop-light.svg?w=3840&q=90>)
-- [Git 服务方案模拟](<https://openai.com/index/scaling-git-at-openai#:~:text=Simulating%20Git%20Server%20ImplementationsFollow%20each%20writer>)
-- [Pando 推送与读取](<https://openai.com/index/scaling-git-at-openai#:~:text=Pushing%20and%20Fetching%20a%20Branch%20in>)
-- [公布引用数量与包大小](<https://images.ctfassets.net/kftzwdyauwt9/3H8EcvD2zWlkO6LDnf4Zzy/90597498322b48ae7215638f012fe716/how-advertised-refs-affect-packfile-size-diagram-desktop-light.svg?w=3840&q=90>)
-- [规划读取所需的包](<https://openai.com/index/scaling-git-at-openai#:~:text=Planning%20fetches%20in%20PandoPando%20compares%20what>)
-- [后台压实过程](<https://openai.com/index/scaling-git-at-openai#:~:text=Compaction%20in%20PandoSmall%20packfiles%20are%20grouped>)
-- [部署数据图（原文部署一节含两图）](<https://openai.com/index/scaling-git-at-openai#:~:text=Deploying%20Pando>)
+分支和标签是指向提交的引用（ref）。在分支上提交会创建一个新提交，并移动其引用。
+
+<figure>
+  <img src="https://images.ctfassets.net/kftzwdyauwt9/2HM5lol94vaZXcGl7zXuf1/96c979a79f2b5971397cf3068a4767da/how-git-objects-reference-each-other-diagram-desktop-light.svg?w=3840&amp;q=90" alt="提交指向树，树指向其他树和文件对象，分支通过引用指向当前提交。">
+  <figcaption>提交指向树，树指向其他树和文件对象，分支通过引用指向当前提交。</figcaption>
+</figure>
+
+对象可以分别存为独立文件，也可以合并到 packfile。后者能用彼此之间的差异编码相似对象。
+
+<figure>
+  <img src="https://images.ctfassets.net/kftzwdyauwt9/4xklltw3tJY3qRk8mzW0l3/f7f44a2cb856b00677a31506465e6d1a/storing-git-objects-in-packfiles-diagram-desktop-light.svg?w=3840&amp;q=90" alt="独立 blob 和 packfile 中的增量编码。">
+  <figcaption>独立 blob 和 packfile 中的增量编码。</figcaption>
+</figure>
+
+如果从提交出发沿父提交、目录树和文件对象能找到某对象，就称它可达。执行 fetch 时，客户端告诉服务器想要哪些提交、已经有哪些提交。服务器找出想要的提交所能到达的对象，排除客户端已有的部分，再打包发送。完整克隆没有已有对象，所以需要历史可达的全部对象。
+
+push 则把对象传向服务器，并请求更新引用。客户端根据服务端公告的引用排除它认为服务端已有的对象，因此只拿到包并不足以重建新历史。对副本来说，提供新引用之前必须能提供它所需的对象，并处理同时把同一旧分支值推向不同新提交的竞争。如果整个仓库的写入只能按一个顺序推进，无关分支也会互相等待。
+
+## 已有的分布式 Git 服务模式
+
+我们对比了两种方案：以三阶段提交协调引用更新，或以对象存储中的预写日志排列更新。
+
+### 三阶段提交
+
+模拟里的各副本都保存完整仓库。接到 push 的协调者把包并行发往副本。每个副本锁住自己的引用，并核对它仍指向客户端预期的提交。协调者向同意的副本发送预提交，取得多数确认后才下令更新。追上进度的副本可以从本地公告新分支值。
+
+完整副本可以就地读取，而且选哪个副本都能看到一致的引用视图。代价是引用依次更新，每次 push 要多轮通信，并等待多数副本。写量上升时，磁盘和通信延迟都会进入推送的关键路径，副本还要兼顾读请求。
+
+### 预写日志
+
+另一种方案把所有变化写入共享清单。服务器上传收到的 packfile，在本地准备引用更新，再向共享清单追加一个引用改动和包的指针。比较并交换操作会原子地替换清单。若别的写入者已更新它，服务器读取新增记录、核对自身更新仍有效，并用已上传的包重试。
+
+包能并行上传，无关分支却仍然竞争同一份清单。单次比较并交换的往返限制了刷新频率。批量更新能一次发布多个引用，代价是额外排队。只给对象存储扩容不能解决共享清单竞争；副本也要及时下载并索引写入的包，跟不上时新提交的读取就会延迟。
+
+## Pando 的架构
+
+### 重新审视约束
+
+要提供全仓库同一时点的快照，所有引用必须协调。对每个客户端量身打包则消耗 CPU 和磁盘 I/O，限制并发读取。Pando 放宽跨分支的一致性，并复用包，将两类限制各自处理。
+
+### 因果一致性
+
+推送到分支时，收到的包作为不可变对象存入对象存储。每次分支移动，元数据服务会记录一个引用版本，包括新分支头、对应包，以及该包依赖的先前引用版本。两种存储均可横向扩展。
+
+读取一个提交或引用，就是给客户端重放一组版本及相应的包，构建产生目标版本的写入者所依赖的历史。单个引用更新有可串行化保证，同时写同一引用才会竞争。跨分支没有全库快照：比如克隆协商期间两个分支同时更新，两个客户端可能分别看到不同的新旧组合。实践中，用户与智能体更依赖单一引用的更新顺序。
+
+<figure>
+  <img src="https://images.ctfassets.net/kftzwdyauwt9/5wDkqDPp9fjzOjtAQRDRzw/117b2f107fd11818f7e9154c958b0878/representing-branches-in-pando-diagram-desktop-light.svg?w=3840&amp;q=90" alt="主分支的连续推送生成增量包，功能分支的后续包会重新包含该分支先前的提交。">
+  <figcaption>主分支的连续推送生成增量包，功能分支的后续包会重新包含该分支先前的提交。</figcaption>
+</figure>
+
+### 比较三种方法
+
+模拟让 1,000 个客户端各选不同分支，反复推送不同提交，测量总时间以及从 push 到独立读者能检出的延迟。它覆盖不同硬件配置，并在模拟中放宽三阶段提交的全局一致性要求。
+
+<figure>
+  <img src="/images/articles/openai-pando-git-5.png" alt="并发写入模拟与独立读者的验证进度。（原文截图）">
+  <figcaption>并发写入模拟与独立读者的验证进度。（原文截图）</figcaption>
+</figure>
+
+负载升高时，三阶段提交模型因磁盘饱和而表现出较高写延迟，日志模型则因副本追日志吃力而表现出较高读延迟。模拟和团队在单仓中的测试都表明，Pando 可以处理数千客户端的并发推送。服务器会在流式上传时校验入站包，不必在本地仓库解包。fetch 开始后，它选择已有的包，让客户端直接下载，无须现场打包。
+
+<figure>
+  <img src="/images/articles/openai-pando-git-7.png" alt="Pando 的推送与读取路径。（原文截图）">
+  <figcaption>Pando 的推送与读取路径。（原文截图）</figcaption>
+</figure>
+
+### 扩展推送
+
+传统服务端会公布许多分支，客户端用这些信息省去服务端已经拥有的对象。公告越多，包通常越小，却越难复用，因为另一个客户端未必已有被省去的依赖。全量公告在数百万分支时自身就可能超过 100 MiB，保持其一致也很昂贵。完全不公告又会让客户端发送整段历史。
+
+<figure>
+  <img src="https://images.ctfassets.net/kftzwdyauwt9/3H8EcvD2zWlkO6LDnf4Zzy/90597498322b48ae7215638f012fe716/how-advertised-refs-affect-packfile-size-diagram-desktop-light.svg?w=3840&amp;q=90" alt="公布引用数量与 packfile 大小的关系。">
+  <figcaption>公布引用数量与 packfile 大小的关系。</figcaption>
+</figure>
+
+新功能分支通常只以指定主线作为公告基础。连续推送或堆叠分支时，客户端可能反复发送主线以外的对象，包会变大。原文报告，单仓中的这类包中位数小于 20 KiB，第 99 百分位小于 3 MiB。已有该主线的读者只用这一个包就能取得分支。
+
+Pando 同步写入新引用版本并移动指针，让新提交立即可以拉取。压实等异步工作记录在同一事务里。对很大的推送，只同步写入一部分提交映射，将关键路径的元数据读写控制在常数级。唯一需要竞争的是当前引用指针，通过类似比较并交换的原子操作保护。可以分别增设 Pando 服务器、元数据容量或对象存储。
+
+### 用满带宽的拉取与克隆
+
+Git 客户端在 fetch 时给出两组提交 ID，分别是已有的 haves 和想要的 wants。传统服务端计算可达对象差集、压缩，再发给客户端。即时生成的包计算代价高，也难缓存。Pando 会借助推送时记录的提交映射，求出能覆盖缺失对象的引用版本及已有包。
+
+<figure>
+  <img src="/images/articles/openai-pando-git-9.png" alt="根据客户端现有提交和目标提交选择包。（原文截图）">
+  <figcaption>根据客户端现有提交和目标提交选择包。（原文截图）</figcaption>
+</figure>
+
+通常 Git 只在 HTTP 响应内携带一个包。packfile-uri 允许服务端提供额外包的下载地址。Pando 在响应内传空包，将数据交给区域缓存。Express 缓存对象存储，另一服务缓存元数据。通过一致性哈希路由包请求，命中率超过 99%。使用标准云主机的实测表明，fetch 和 clone 可以用满 10 Gbps 网络连接。
+
+### 压实与首字节时间
+
+高速变化的主线如果为每次推送附一个 URI，落后一日的客户端就可能要取数万个包。Pando 像日志结构合并树那样，把每次写入的零级包在后台组合成跨多个版本的覆盖范围，当前单仓最多到四级。覆盖范围足够大时，任务会生成一个更大的包，提高压缩率。不同层级的覆盖范围还像跳表一样，可以用对数时间为读者选包。
+
+<figure>
+  <img src="/images/articles/openai-pando-git-11.png" alt="将小包合为跨多个版本的压实包。（原文截图）">
+  <figcaption>将小包合为跨多个版本的压实包。（原文截图）</figcaption>
+</figure>
+
+各层包都可继续服务客户。细粒度随机读有时从零级包读取的数据更少，因为它更可能没有深度压缩。压实既减少传输量，也让选包复杂度随落后程度呈次线性增长，对变化快的大仓库尤其重要。
+
+## 构建 Pando
+
+团队用 Codex 在十周内从启动做到上线。核心由一名工程师设计，多个智能体团队实现，少数工程师部署。Pando 从四月起开始承载生产流量。项目从头使用 Rust，实现了标准 Git 行为的一致性测试套件，并以确定性模拟检验不变量，发现协商和选包中的竞争与回归。团队还用 Lean 和 TLA+ 对设计建模，验证性质与边界情况。
+
+## 部署 Pando
+
+最初，Pando 作为旧系统的读写代理，两端保持同步，迁移不用停服。它还能在代理前合并重复请求，让旧系统在迁移期间更稳定。随着更多工作负载切换，推送进一步填充了 Pando 缓存。
+
+团队在开发机和 ChatGPT 桌面应用中分发 Git 构建，并通过内部 CLI 包装器分批迁移。数百个依赖旧 API、Webhook 和下载能力的集成也一起迁移。开发者还可请 Codex 用团队准备的技能切换已有工作副本与服务。
+
+推送延迟中位数约下降 80%，合并可靠性也提升了。
+
+<figure>
+  <img src="/images/articles/openai-pando-git-13.png" alt="切换至 Pando 前后的每日合并成功率。（原文截图）">
+  <figcaption>切换至 Pando 前后的每日合并成功率。（原文截图）</figcaption>
+</figure>
+
+Pando 用少数 CPU 核即可提供每天约 1 PB 的 Git 数据。团队曾在一小时内传输超过 57 TB 的包，其中超过 99% 字节来自本地磁盘缓存。复用包让数据交付与 Git 协商可以分别扩容。
+
+<figure>
+  <img src="/images/articles/openai-pando-git-14.png" alt="切换前后 Pando 每日服务的数据量。（原文截图）">
+  <figcaption>切换前后 Pando 每日服务的数据量。（原文截图）</figcaption>
+</figure>
+
+## 反馈给 Git 项目
+
+直接向客户端提供可复用包，使并发下载、索引、中断清理和继续下载成为重要路径。团队修复了这些边界并向上游反馈，也为 packfile-uri 加入追踪、为包生成加入字节统计，让人能分辨耗时在打包还是传输。
+
+OpenAI 的 Git 构建可并行下载和索引彼此独立的包。显式 haves 让服务端分别公告分支当前头和推送时可省略的历史，因此客户端可检查功能分支是否移动，同时只以主线为打包基础。已有该主线的读者就能复用同一个包。部分改进已进入上游，团队仍在继续与 Git 社区协作。
+
+## 下一步
+
+Pando 在保留工程师与智能体既有 Git 工作方式的同时，支持了更高并行度、更可靠的合并和更快的发布。团队也在探索让更多智能体在共享仓库上协作，以及将 Pando 的技术分享给其他用户。它依托 Git 用户和运营者二十年的经验，团队会继续把有普遍价值的改进反馈给社区。

@@ -9,24 +9,83 @@ Source_title: GLM-5.4：瞄向泛Coding，首个Loop Transformer带来的惊喜
 Kind: digest
 Source_date: 2026-11-22
 
-智谱用「瞄向泛 Coding」概括 GLM‑5.4 的方向，并以视频、3D、游戏等场景说明代码怎样驱动其他产出。理解这篇发布文的技术部分，可以从作者的核心表述入手：「Loop Transformer 可以让一组共享权重的层循环执行」。原文作者将 GLM‑5 基座中的 28 层运行两轮。
+<span>过去三个月，我们同时激进地Scaling Loop和模型大小。大家首先看到Loop架构带来的惊喜。Loop Transformer可以让一组共享权重的层循环执行，模型因此可以在参数量不变的情况下进行更深度的推理，等效获得更大尺寸的模型效果。</span>
 
-## 什么是把一组层再跑一次
+<ul><li><span><strong>GLM-5.4是我们第一代采用Loop Transformer架构的旗舰模型</strong></span><span>。收获了效果，智能水平达到2-3T级模型。</span></li><li><span><strong>GLM-5.4是“泛Coding”的开启</strong></span><span>。代码正在成为完成更广泛任务的基础，解锁了不少新能力。</span></li></ul>
 
-Transformer 的一层会根据已读到的信息更新 token 的内部表示。典型模型逐层运行，每层有各自的权重。循环层会把第一轮输出送回同一组权重处理。相同参数做第二次计算可以精炼结果，计算时间仍应计入推理成本。
+<p><br><span>我们也发现了一些问题，比如模型很容易进入“雷霆大思考”模式（但我们发现这种长时间思考可以持续提升效果——模型在思考中不断反思、自我修正，这正是我们在长程任务上一直想要的能力）。</span></p>
 
-## 智谱公布的三个实现选择
+<p><span>即日起，GLM-5.4向</span><span><strong>GLM Coding Plan</strong></span><span>全量用户开放，同步上线ZCode、Trae、WorkBuddy、Qoder等编码平台。API将在完成安全评估后开放，模型权重计划以负责任的方式开源。Coding Plan V2/V3/团队版用户，使用GLM-5.4额度提升至</span><span><strong>1.5倍</strong></span><span>。可以在ZCode中充分体验GLM-5.4泛Coding能力，解锁专业应用新可能。</span></p>
 
-1. **门控渐进更新。** 每轮为每个 token 计算写回比例。原文描述的训练结果中，多数位置第一轮更侧重建立上下文，第二轮在此基础上精炼。门控也能对较难预测的位置调整写入力度。
-2. **全局复用 KV，局部保留新 KV。** KV 缓存保存注意力读取此前 token 时可复用的数据。第二轮复用第一轮为长距离注意力选出的缓存，并保留近邻滑动窗口内第二轮的新缓存。这样能获得局部更新，又不必给每一轮准备完整长上下文缓存。
-3. **复用稀疏注意力索引。** 稀疏注意力只挑选一部分位置参与计算。第二轮复用第一轮已挑出的位置，节省再算索引的代价。原文报告，在作者的实验里，这种复用与每轮重新计算的效果接近。
+<h2><span><strong>泛Coding</strong></span></h2>
 
-## 如何读原文的性能结论
+<p><span>代码（Coding）已经成为模型能力外推的基础能力。自2025年初我们all-in-coding，在这场探索之路上，我们解锁了智能体工程（Agentic Engineering）、长程任务（Long Horizon Task）、甚至安全能力（Cyber Security）。这次我们率先瞄向</span><span><strong>“泛Coding”</strong></span><span>，这条路的上界更高，带来的改变更深远。</span></p>
 
-参数、显存、算力衡量不同成本。共享权重限制了参数增长，缓存和索引复用减少了额外资源需求，第二轮的计算仍然存在。对照原图或评测时，应同时关注上下文长度、任务类型与推理条件。
+<span>为了测试模型在实际编程任务中的能力，我们进行了200个真实场景的编程实战评测。结果显示，GLM-5.4依旧是Coding体感最强的国产模型，在视觉Coding、视觉复刻和长程任务中表现突出。</span>
 
-## 原文插图
+<figure>
+  <img src="/images/articles/zhipu-glm-5-4-cover.jpg" alt="GLM‑5.4 原文插图">
+  <figcaption>GLM‑5.4 原文插图</figcaption>
+</figure>
 
-- [GLM‑5.4 发布首图](<https://www.zhipuai.cn/api/media/file/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20261123150241_492_40.jpg>)
-- [原文第二张插图](<https://www.zhipuai.cn/api/media/file/c1b61892-d25a-461d-8789-31315d77de15.png>)
-- [原文第三张插图](<https://www.zhipuai.cn/api/media/file/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20261123163301_500_40.jpg>)
+<span>得益于代码和视觉能力的双重提升，解锁了大量Coding以外的新场景。比如，GLM-5.4可以用代码生成和处理视频、构建一款完整的游戏、完成3D建模和机械设计等。</span>
+
+<span><strong>1.Scaling Coding to Video</strong></span>
+
+<span>GLM-5.4的自述MV“Hello world”。创作者Mike Luan使用GLM-5.4从0到1完成了创意、编曲、动态、到画面渲染的全流程。其中画面部分全部使用前端代码实时绘制（0图像素材），音乐则是GLM-5.4根据章节和镜头自行计划、调用第三方音乐生成模型制作，并自主完成多轮的音乐Prompt修改。</span>
+
+<span><strong>2.Scaling Coding to 3D</strong></span>
+
+<span>创作者夜神不说话在0外部3D模型、0贴图文件，纯数学几何与自定义GLSL着色器从零生成3D微距互动观鸟体验，还原出绒毛根根分明、会呼吸歪头、眨眼瞬膜的北长尾山雀。</span>
+
+<span><strong>3.Scaling Coding to Engineering</strong></span>
+
+<span>GLM-5.4通过FreeCAD进行工程化建模，构建六轴机械臂模型，然后调用Blender设计动作、就可视化，并合成音频，生成了抓取Logo动作的模拟与可视化。</span>
+
+<h2><span><strong>Loop架构</strong></span></h2>
+
+<figure>
+  <img src="/images/articles/zhipu-glm-5-4-loop-architecture.png" alt="Loop 架构实验原图">
+  <figcaption>Loop 架构实验原图</figcaption>
+</figure>
+
+<span>我们在GLM-5.3的技术博客中讨论过：记忆型任务受益于更多参数，推理型任务受益于更多有效计算。大型软件工程、网络安全、3D建模与物理控制，本质上都是极长链路的推理任务，模型必须沿多步因果链持续推演，并保持全局逻辑自洽。这类能力无法靠堆叠参数、死记硬背获得。</span>
+
+<span>为此，GLM-5.4引入Loop Transformer。</span>
+
+<span>标准Transformer的每一层在一次前向计算中只执行一次；Loop Transformer则让一组共享权重的层循环执行多轮，每一轮都在上一轮隐状态的基础上继续推演、细化结果。这相当于在不增加参数量的前提下，得到一个更深的网络。</span>
+
+<span>这个想法并不新。2018年的Universal Transformer就提出了权重共享的深度结构，近年关于循环深度、循环语言模型的研究也在小规模上验证了收益。不过，权重共享虽然提高了参数效率，但在同等预训练计算量下，效果仍不如不共享权重的模型。因此我们没有从头预训练，而是将一个已完成预训练的基座模型通过进一步训练改造为Loop Transformer，以较小的算力开销换取智能上限的提升。GLM-5.4对GLM-5基座中的28层做两轮循环。为兼顾循环效果与部署成本，我们在一系列试验后，针对750B规模的模型做了三项改动：</span>
+
+<p><span><strong>1.门控渐进更新：按比例写回候选变化，适配后训练循环并形成跨轮分工</strong></span><span>。把已有模型的中间层改为多轮循环时，如果直接用每轮输出覆盖隐状态，激活范数会随循环轮数过度膨胀，后续层接收到的表示也会偏离原模型熟悉的尺度与分布。GLM-5.4为每一轮设置独立的逐token门控，按比例将该轮的候选变化写回残差流。训练后的门控呈现出清晰的分工：第一轮侧重建立全局上下文状态，对多数位置只以较小的门值温和写回，以稳住尺度；第二轮复用该状态完成精炼，并放开门控、充分写回结果。此外，门控还会根据token的预测难度动态调节步长：在更难预测的位置，首轮写入会适度加大，使复杂预测更充分地受益于多轮迭代。</span></p>
+
+<p><span><strong>2.KV Cache 全局共享+滑窗独立：</strong></span><span>多想一轮，几乎不多占显存。朴素的做法是为每一轮循环保留一整份KV cache，显存随循环轮数成倍增长。我们在跨轮共享KV的基础上，用滑窗补充新一轮的局部信息：第二轮复用第一轮选出的稀疏KV，同时保留滑动窗口内由第二轮生成的KV。两路KV可以覆盖同一位置，让模型既能读取第一轮的上下文表示，也能利用第二轮更新后的局部表示。这样多一轮循环的额外代价只是一个窗口的KV，而不是一整份全上下文cache。在1M长上下文下，这一设计使GLM-5.4相对GLM-5.3的部署成本增幅保持可控。</span></p>
+
+<p><span><strong>3.复用稀疏注意力索引：多想一轮，不多花检索成本</strong></span><span>。GLM-5.4的基座采用稀疏注意力，第二轮循环直接复用第一轮索引器生成的索引，不增加任何索引器开销。实验表明，它与每轮重新计算索引的效果几乎相当。</span></p>
+
+<span>Loop也是对Scaling Correctness的一次严苛检验。任何的架构创新，必须在规模放大后依然成立。在把旗舰押注于Loop之前，我们在1B、4B、30B直到750B基座上逐级做了验证。</span>
+
+<span>在与750B基座架构完全相同的30B模型上，我们做了同参数量对比：参数量完全相同、整体训练计算量仅增加约10%，Loop版本相对基线有明显提升。</span>
+
+<figure>
+  <img src="/images/articles/zhipu-glm-5-4-evaluation.jpg" alt="30B 模型长文本 SFT 后的 thinking 评测">
+  <figcaption>30B 模型长文本 SFT 后的 thinking 评测</figcaption>
+</figure>
+
+<span><em>30B模型，经200K长文本SFT后，开启thinking评测</em></span>
+
+<span>两个发现尤其值得关注：</span>
+
+<ul><li><span><strong>推理链越长，Loop的帮助越大</strong></span><span>。提升最大的是数学推理、长上下文和代码，这些正是泛Coding最依赖的能力。</span></li><li><span><strong>Loop用更少的token思考</strong></span><span>：在GPQA、MMLU-Pro等基准上，平均输出长度下降10%–14%，缩减主要来自思维链。也就是说，一部分推理从token流转移到了循环带来的额外深度中。</span></li></ul>
+
+<span>GLM-5.4是我们对Loop的初步探索，仍有问题有待回答：如何实现自适应计算，让不同难度的token获得不同的计算量；以及随着循环轮数和模型规模继续增加，Loop的收益会如何变化。</span>
+
+<h2><span><strong>可用性</strong></span></h2>
+
+<span>GLM-5.4在非高峰时段速度最高可达200 token/s，高峰时段依然能提供70-80 token/s。对多轮循环计算的Loop架构而言，做到这一点尤其不容易。我们通过模型结构与推理Infra的深度协同设计，把循环带来的额外开销压到了最低。结构上，按距离拆分的KV cache让第二轮循环几乎不增加显存，稀疏注意力索引复用让循环不增加检索开销。算子上，核心算子充分融合，减少中间结果在显存里的来回读写，把循环放大的零碎开销在内核层面省了下来。</span>
+
+<span>更强的性能、更快的速度、更充裕的额度，共同让GLM-5.4成为日常生产力的首选。即刻体验：</span>
+
+<ul><li><span><strong>原生泛Coding终端ZCode</strong></span><span>：</span><a href="https://zcode.z.ai/cn"><span>https://zcode.z.ai/cn</span></a></li><li><span><strong>GLM Coding Plan</strong></span><span>：</span><a href="https://bigmodel.cn/glm-coding"><span>https://bigmodel.cn/glm-coding</span></a></li><li><span><strong>API</strong></span><span>（即将上线）：</span><a href="https://www.zhipuai.cn/zh/research/bigmodel.cn"><span>bigmodel.cn</span></a><span> / </span><a href="https://z.ai/model-api"><span>https://z.ai/model-api</span></a></li><li><span><strong>官方产品</strong></span><span>：z.ai/智谱清言/AutoClaw</span></li><li><span><strong>联合伙伴首发</strong></span><span>：WorkBuddy、豆包工作、Trae、千问办公、Qoder、妙手（CatPaw）、码道、百度搭子企业版、AiWork、TJ Codely、OpenCode</span><br></li></ul>
+
+<span><strong>我们不是在扩展深度与扩展模型大小之间二选一，而是两者并进。GLM-5.4验证了计算深度这条路，我们的下一个模型规模显著更大，将承载这里学到的一切，很快与大家见面。</strong></span>

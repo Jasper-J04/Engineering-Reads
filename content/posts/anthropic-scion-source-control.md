@@ -10,18 +10,28 @@ Kind: guide
 Source_date: 2026-10-13
 Source_author: Nick G. and the Anthropic source control team
 
-当工程师与大量自动化任务同时修改一个大仓库，版本控制服务既要快速接收变更，又要让用户方便地查询历史和更新分支。Anthropic 的 Scion 把这些操作拆开，各自使用合适的数据结构。
+Anthropic 工程团队在单体仓库增长过程中遇到了大量并发变更。Scion 的出发点是把保存变更、移动分支指针和读历史索引拆成各自独立的问题。
 
-## 快照和变更记录有什么区别
+## 快照和变更日志
 
-Git 提交指向一棵目录树，从而描述某一时刻的文件快照。Scion 的 changeset 则记录相对第一父提交变了哪些文件，并存下指向压缩文件内容的地址。地址由内容决定，因此可以把“文件内容存在哪”与“哪个变更引用这个文件”分别处理。
+Git 提交指向一棵目录树，可以用它解释当时完整的文件结构。Scion 的 changeset 保存相对第一个父提交发生变化的文件列表，文件内容压缩后存入对象存储，变更通过由内容决定的地址引用它们。changeset 是预写日志里一条记录，存储系统可以据此追加变更。
 
-## 分开写入变更和更新分支引用
+## 保存变更与移动分支分别执行
 
-Scion 在服务端把 changeset 写入日志。保存变更时无需接收 Git packfile，也无需同时移动分支引用。要更新分支时，系统才对 Spanner 中的一行执行比较并交换。直观地说，只有分支当前值仍是调用方之前看到的值，才接受这次更新。这可以避免两次并发更新无声地覆盖彼此。
+Scion 在服务端生成 changeset，创建与读取提交时无需先移动分支引用。需要更新引用时，服务在 Spanner 中对单行执行比较并交换。它先检查分支仍指向调用者预期的旧值，匹配才写入新值。这样并发修改不会默默覆盖彼此的引用更新。
 
-## 读取侧需要另外准备索引
+## 为历史查询预计算数据
 
-变更日志适合追加写入，但单看一条变更，很难立即回答“谁最后修改了这一行”或“哪些提交改过这个路径”。Scion 从变更和父提交派生出行级历史、路径历史等查询结构。这样，写入可以保持简洁，查询则不用每次都重扫历史。
+变更日志容易追加，不过回答「某一行最后由谁修改」时，逐条重放会很慢。Scion 从父提交及当前变更递推计算派生数据，例如文件行历史、路径历史或提交图索引。团队还讨论了检出架构以及对原生 Scion 仓库观察到的性能变化，原图提供比较口径。
 
-Scion 的取舍适用于并发写入和历史查询都很重的场景，也带来额外的索引维护工作。可以对照[OpenAI 的 Pando](/posts/openai-pando-git/)，后者在 Git 协议内扩展对象读取和分支写入。
+把写入路径做短，需要在读取和索引维护上付出相应成本。如果要保留标准 Git 客户端，可以比较 [OpenAI 的 Pando](/posts/openai-pando-git/) 如何在 Git 协议内处理并发与读取。
+
+## 原文插图
+
+- [封面插画](<https://assets.claude.com/cfb6c0671a1e04252d55fc3c6776daad399e8356.jpg?w=1920&q=75&fm=webp&fit=max>)
+- [单体仓库每日合并量](<https://assets.claude.com/1e2a750dba61db4a76b72eec5b0cf50b8a7f878c.png?w=3840&q=75&fm=webp&fit=max>)
+- [传统 Git 检出扩展架构](<https://assets.claude.com/ff019752973f6d83d2f6ba3bf56636aced3ea82c.png?w=3840&q=75&fm=webp&fit=max>)
+- [Scion changeset 的结构](<https://assets.claude.com/71c83868210b4b571abb068ea4cd76de749566b1.png?w=3840&q=75&fm=webp&fit=max>)
+- [Scion 检出架构](<https://assets.claude.com/cba1eaaa67385fd00f210badaacd147de480120b.png?w=3840&q=75&fm=webp&fit=max>)
+- [Scion 与 Antique 每周变更量](<https://assets.claude.com/dd91296719203f38229824bb9bc9e9a61c76ed67.png?w=3840&q=75&fm=webp&fit=max>)
+- [原生 Scion 仓库性能](<https://assets.claude.com/c706fa6efb4b9e5cd2566cb080acbfce7218042d.png?w=3840&q=75&fm=webp&fit=max>)

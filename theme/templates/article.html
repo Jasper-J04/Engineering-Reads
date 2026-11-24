@@ -9,7 +9,6 @@
     <header class="post-header">
       <p class="post-byline">{{ kinds[article.kind] }} <span aria-hidden="true">/</span> <span>收录于 <time datetime="{{ article.date.isoformat() }}">{{ article.locale_date }}</time></span></p>
       <h1>{{ article.title }}</h1>
-      <div class="post-standfirst">{{ article.summary | safe }}</div>
       {{ topic_links(article, TOPICS) }}
     </header>
 

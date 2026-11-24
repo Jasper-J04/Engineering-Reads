@@ -10,18 +10,30 @@ Kind: guide
 Source_date: 2026-10-23
 Source_author: Jon Lee, Hrachya Hakobyan, Chaomin Yu
 
-ChatGPT 的不同功能会共享在线存储平台 Habitat。共享资源便于利用闲置容量，但一个流量突然上涨的功能也可能拖慢登录等关键请求。OpenAI 的这篇复盘围绕 Azure Cosmos DB 展开，记录团队怎样在共享和隔离之间调整。
+OpenAI 用 Habitat 为 ChatGPT 等产品提供在线数据访问。Storage Part II 从一个很常见的问题开始：多个功能共享容量时，一项流量突增可能拖慢无关的关键请求。文中记录了团队如何从依赖数据库内建能力，走到默认共享但能主动隔离的架构。
 
-## 分区键划分数据，物理分区分配资源
+## 理解 Cosmos DB 分区
 
-以用户 ID 为分区键时，同一用户的记录可以落在同一个逻辑分区。数据库会把许多逻辑分区放到物理分区上，它们共享这一物理分区可用的吞吐。如果一个用户或工作负载突然变热，即使其他用户用了不同的键，也可能因共享资源而被限流。这就是一种“吵闹邻居”问题。
+逻辑分区由分区键决定。例如同一用户的数据可以使用同一个键。多个逻辑分区可以共享一个物理分区的吞吐。同一个用户的不同功能也可能争用同一个键。一个热点会让同一物理分区中的其他键被限流；总容量还有余量时，局部也可以已经饱和。
 
-## 从专用容器回到有保护的共享容器
+## 三个阶段的取舍
 
-团队试过把负载拆到独立容器，降低彼此影响。这改善了部分隔离问题，但每个容器都要提前规划容量，流量骤增或资源分布变化时仍然难以调整。后来 Habitat 默认使用共享容器，同时保留迁移数据的能力，把不适合继续共享的负载移走。
+1. **依赖内建分区机制。** 工程团队遇到了逻辑键自身的限制、物理分区上的互相干扰，以及分区拆分后容量与需求不匹配的问题。
+2. **按工作负载拆分容器。** 独立容器改善隔离，但每个容器要各自规划容量。历史流量比例稳定也无法保证新功能在上线时继续按同一比例增长。
+3. **默认共享，同时保留搬迁能力。** 热键限流限制最热的键，服务质量策略先限制低优先级后台请求。团队也保留把负载迁走的手段，避免极端负载长期占用共享容量。
 
-在共享容器里，热键限流优先限制最热的键。服务质量策略则会优先限制批量导入、数据抽取等低优先级流量，为在线交互保留空间。前者按热点限制，后者按业务优先级分配资源。
+## 跨区域与变更流
 
-## 对日常系统设计的启发
+部署遍布多地时，计算和数据可能落在不同区域。访问路径绕远会直接体现在延迟上。原文分别介绍了全球流量路径、读延迟优化，以及变化数据捕获（CDC）的扩容。CDC 可以理解为把存储写入的变化交给下游处理，因而也有自己的吞吐与延迟预算。
 
-容量监控需要能下钻到分区和流量类型，否则总吞吐还有余量也可能掩盖局部拥堵。共享资源适合容量需求分散的工作负载。准备请求优先级、限流和搬迁路径，可以减少团队在发现热点后临时拆库的压力。
+原文图 05 给出的读 p50 约从 120 毫秒降到 10 毫秒，指该案例中多项改动后的中位延迟。看自己的系统时，可以分别观察分区热点、业务优先级和跨区路径，再决定该调容量、加限流还是搬迁数据。
+
+## 原文插图
+
+- [图 01 · Habitat 平台](<https://openai.com/index/scaling-storage-one-billion-users-part-two#:~:text=Figure%2001%20%C2%B7%20What%20is%20Habitat%3FOnline>)
+- [图 02a · 同一分区键的资源争用](<https://openai.com/index/scaling-storage-one-billion-users-part-two#:~:text=Figure%2002a%20%C2%B7%20Logical%20partition%20key>)
+- [图 02b · 不同键共用物理分区](<https://openai.com/index/scaling-storage-one-billion-users-part-two#:~:text=Figure%2002b%20%C2%B7%20Noisy%20neighborsDifferent%20users%2C>)
+- [图 02c · 分区拆分后的容量不足](<https://openai.com/index/scaling-storage-one-billion-users-part-two#:~:text=Figure%2002C%20%C2%B7%20Weak%20partitionsThe%20limit>)
+- [图 03 · 负载增长与容量余量](<https://openai.com/index/scaling-storage-one-billion-users-part-two#:~:text=Figure%2003%20%C2%B7%20Lack%20of%20stable>)
+- [图 04 · 全球读流量](<https://openai.com/index/scaling-storage-one-billion-users-part-two#:~:text=Figure%2004%20%C2%B7%20Improving%20performance%20at>)
+- [图 05 · 读延迟 p50](<https://openai.com/index/scaling-storage-one-billion-users-part-two#:~:text=Figure%2005%20%C2%B7%20Improving%20performance%20at>)

@@ -344,14 +344,6 @@ h1, h2, h3 {
 
 .post-byline span[aria-hidden="true"] { margin-inline: .25rem; }
 
-.post-standfirst {
-  color: var(--muted);
-  font-size: 1.08rem;
-  line-height: 1.8;
-}
-
-.post-standfirst p { margin-bottom: .8rem; }
-
 .source-card {
   padding: .85rem 1rem;
   margin-bottom: 1.85rem;

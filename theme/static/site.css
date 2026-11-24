@@ -379,6 +379,13 @@ h1, h2, h3 {
 }
 
 .prose h2 { font-size: 1.4rem; }
+.prose figure { margin: 1.6rem 0; }
+.prose figure img { display: block; max-width: 100%; height: auto; }
+.prose figcaption {
+  margin-top: .5rem;
+  color: var(--muted);
+  font: .9rem/1.6 var(--sans);
+}
 .prose h3 { font-size: 1.18rem; }
 
 .prose p, .prose ul, .prose ol, .prose blockquote, .prose pre, .prose table {

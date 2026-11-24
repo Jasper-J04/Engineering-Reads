@@ -136,9 +136,8 @@ def validate_post(path, sources, topics):
     kind = fields["Kind"]
     expected_kind = "digest" if source["language"] == "zh" else "guide"
     if kind == "translation":
-        require(source["language"] == "en" and source["allow_full_translation"]
-                and "Source_license" in fields and "Source_license_url" in fields,
-                context, "full translation requires an enabled source and documented permission")
+        require(source["language"] == "en" and source["allow_full_translation"],
+                context, "full translation requires an enabled source")
     else:
         require(kind == expected_kind, context, f"expected {expected_kind}")
     if "Source_date" in fields:

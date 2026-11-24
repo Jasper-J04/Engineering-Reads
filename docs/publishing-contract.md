@@ -4,7 +4,7 @@
 
 ## 来源与主题
 
-`sources.json` 的 `sources` 是来源数组。每个来源的字段为 `id`、`name`、`language`、`feed`、`hosts`、`allow_full_translation`。来源 ID 唯一，由小写英数字和连字符组成。语言为 `en` 或 `zh`，`feed` 为官方 RSS、Atom 或技术文章索引的 HTTPS URL，`hosts` 列出文章允许的准确小写域名。全文翻译权限由维护者审核后设置。
+`sources.json` 的 `sources` 是来源数组。每个来源的字段为 `id`、`name`、`language`、`feed`、`hosts`、`allow_full_translation`。来源 ID 唯一，由小写英数字和连字符组成。语言为 `en` 或 `zh`，`feed` 为官方 RSS、Atom 或技术文章索引的 HTTPS URL，`hosts` 列出文章允许的准确小写域名。当前英文来源启用全文翻译。
 
 `topics.json` 将稳定的主题 ID 映射到中文标签。文章从这个清单选择 1 至 5 个不同主题，按逗号和空格分隔。
 
@@ -25,9 +25,9 @@
 | `Date` | 首次成功收录的北京时间，格式为 `YYYY-MM-DDTHH:MM:SS+08:00` |
 | `Tags` | 从 `topics.json` 选择 1 至 5 个 ID |
 | `Source`、`Source_url`、`Source_title` | 来源 ID、规范化原文地址、原文实际标题 |
-| `Kind` | 外文导读用 `guide`，中文整理用 `digest`，获授权的外文全文翻译用 `translation` |
+| `Kind` | 英文新稿用 `translation`，中文原文用 `digest`，已有的外文导读 `guide` 继续兼容 |
 | `Source_author`、`Source_date` | 可选，核实后填写。原文日期用 `YYYY-MM-DD` |
-| `Source_license`、`Source_license_url` | 可选，核实后填写。提供 HTTPS 许可链接时同时填写许可名称。全文翻译要求两者齐全且来源已获准 |
+| `Source_license`、`Source_license_url` | 可选，核实后填写。提供 HTTPS 许可链接时同时填写许可名称 |
 
 下面使用演示来源。可直接对照 [完整演示稿](../demo/content/posts/queue-deduplication.md)。
 
@@ -49,7 +49,7 @@ Kind: guide
 任务可能在提交业务变更之后、确认队列消息之前超时。重试时需要找回本次操作的结果。
 ```
 
-正文侧重原文提出的问题、实现方法、能核实的结果与适用范围。原文中的许可和转载范围由维护者确认。可使用代码块、列表和表格，渲染会清理不安全的 HTML 和链接。
+英文新稿按原文章节做全文翻译，保留作者表述、数据和图注。中文原文保留原文表述。插图在对应段落用 `<figure>`、`<img>` 和 `<figcaption>` 显示，图片使用已配置的官方 HTTPS 图片域名（当前为 `assets.claude.com`）。可使用代码块、列表和表格，渲染会清理不安全的 HTML 和链接。
 
 ## 处理状态 JSON
 

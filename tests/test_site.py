@@ -119,6 +119,10 @@ class SiteTest(unittest.TestCase):
             self.assertIn("another-guide-0", second)
             self.assertIn(f'href="/{prefix}"', second)
 
+        index = json.loads((out / "search-index.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(index), 13)
+        self.assertIn("/posts/another-guide-0/", {item["url"] for item in index})
+
     def test_urls_are_canonicalized_without_losing_meaningful_parameters(self):
         self.assertEqual(
             canonical_url("https://EXAMPLE.org:443/a/?id=1&utm_source=feed&id=2&fbclid=123#text"),

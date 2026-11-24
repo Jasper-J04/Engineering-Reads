@@ -7,6 +7,8 @@
     <h1>归档</h1>
     <p>按收录年月浏览往期文章。</p>
   </header>
+  {% include "search.html" %}
+  <div data-search-browse>
   {% if dates %}
   <div class="archive">
     {% for month, entries in dates | groupby("locale_date", default="") | reverse %}
@@ -28,4 +30,5 @@
     <a href="/">返回首页 →</a>
   </div>
   {% endif %}
+  </div>
 {% endblock %}

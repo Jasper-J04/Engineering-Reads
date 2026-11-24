@@ -1,0 +1,13 @@
+  <form class="article-search" role="search" data-article-search hidden>
+    <label class="search-label" for="article-query">搜索文章</label>
+    <div class="search-controls">
+      <input id="article-query" type="search" placeholder="输入关键词" autocomplete="off">
+      <button type="submit">搜索</button>
+      <button type="reset" hidden>清空</button>
+    </div>
+  </form>
+  <section class="search-results" aria-label="搜索结果" data-search-results hidden>
+    <p class="search-status" role="status"></p>
+    <ul class="entries"></ul>
+  </section>
+  <script src="/assets/search.js" defer></script>

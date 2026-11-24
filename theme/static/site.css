@@ -229,6 +229,37 @@ h1, h2, h3 {
 
 .entry-summary p { margin: 0 0 .6rem; }
 
+.article-search, .search-results { max-width: 48rem; }
+.article-search { margin-bottom: 1.45rem; }
+
+.search-label {
+  display: block;
+  margin-bottom: .35rem;
+  color: var(--muted);
+  font-size: .84rem;
+}
+
+.search-controls { display: flex; gap: .45rem; }
+
+.search-controls input,
+.search-controls button {
+  min-height: 2.65rem;
+  padding: .5rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .2rem;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: .9rem;
+}
+
+.search-controls input { flex: 1; min-width: 0; }
+.search-controls input::placeholder { color: var(--muted); }
+.search-controls button { cursor: pointer; white-space: nowrap; }
+.search-controls button[type="submit"] { background: var(--gold-wash); }
+.search-controls button:hover { border-color: var(--gold-rule); }
+.search-status { color: var(--muted); font-size: .9rem; }
+
 .topic-list {
   display: flex;
   flex-wrap: wrap;

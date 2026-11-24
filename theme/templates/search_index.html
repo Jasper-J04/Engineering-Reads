@@ -1,0 +1,16 @@
+[
+{% for article in articles %}
+  {
+    "title": {{ article.title | tojson }},
+    "originalTitle": {{ article.source_title | tojson }},
+    "url": {{ ("/" ~ article.url) | tojson }},
+    "summary": {{ article.summary | striptags | tojson }},
+    "body": {{ article.content | striptags | tojson }},
+    "source": {{ SOURCES[article.source].name | tojson }},
+    "date": {{ article.locale_date | tojson }},
+    "topics": [
+      {% for tag in article.tags %}{{ TOPICS[tag.name] | tojson }}{{ "," if not loop.last }}{% endfor %}
+    ]
+  }{{ "," if not loop.last }}
+{% endfor %}
+]

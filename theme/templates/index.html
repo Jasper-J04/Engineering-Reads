@@ -10,6 +10,8 @@
       <header class="page-header">
         <h1 id="latest">最新收录</h1>
       </header>
+      {% include "search.html" %}
+      <div data-search-browse>
       {% if entries %}
       {{ entry_list(entries, SOURCES, TOPICS) }}
       {{ pagination(articles_page, articles_previous_page, articles_next_page) }}
@@ -19,6 +21,7 @@
         <a href="/about/">了解本站</a>
       </div>
       {% endif %}
+      </div>
     </section>
     <aside class="sidebar" aria-label="浏览文章">
       {% if tags %}

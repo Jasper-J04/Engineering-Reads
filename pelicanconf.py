@@ -52,7 +52,8 @@ ARCHIVES_SAVE_AS = "archives/index.html"
 ARCHIVES_URL = "archives/"
 ABOUT_SAVE_AS = "about/index.html"
 ABOUT_URL = "about/"
-DIRECT_TEMPLATES = ["index", "tags", "archives", "about", "404"]
+DIRECT_TEMPLATES = ["index", "tags", "archives", "search_index", "about", "404"]
+SEARCH_INDEX_SAVE_AS = "search-index.json"
 CATEGORY_SAVE_AS = ""
 AUTHOR_SAVE_AS = ""
 

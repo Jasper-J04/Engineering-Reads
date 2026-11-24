@@ -1,4 +1,41 @@
 {
   "version": 1,
-  "articles": {}
+  "articles": {
+    "https://openai.com/index/how-openai-performance-factory-keeps-chatgpt-fast": {
+      "source": "openai-engineering",
+      "status": "published",
+      "attempts": 1,
+      "slug": "openai-performance-factory"
+    },
+    "https://openai.com/index/scaling-git-at-openai": {
+      "source": "openai-engineering",
+      "status": "published",
+      "attempts": 1,
+      "slug": "openai-pando-git"
+    },
+    "https://openai.com/index/scaling-storage-one-billion-users-part-two": {
+      "source": "openai-engineering",
+      "status": "published",
+      "attempts": 1,
+      "slug": "openai-habitat-cosmos-db"
+    },
+    "https://www.anthropic.com/research/components-of-agent-memory": {
+      "source": "anthropic-engineering",
+      "status": "published",
+      "attempts": 1,
+      "slug": "anthropic-agent-memory"
+    },
+    "https://www.anthropic.com/research/redesigning-source-control": {
+      "source": "anthropic-engineering",
+      "status": "published",
+      "attempts": 1,
+      "slug": "anthropic-scion-source-control"
+    },
+    "https://www.zhipuai.cn/zh/research/164": {
+      "source": "zhipu-research",
+      "status": "published",
+      "attempts": 1,
+      "slug": "zhipu-glm-5-4-loop-transformer"
+    }
+  }
 }

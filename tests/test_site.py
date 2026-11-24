@@ -61,6 +61,11 @@ class SiteTest(unittest.TestCase):
         path.write_text(json.dumps(state), encoding="utf-8")
 
     def test_demo_and_production_are_isolated(self):
+        for article in (self.repo / "content/posts").glob("*.md"):
+            article.unlink()
+        (self.repo / "state/articles.json").write_text(
+            json.dumps({"version": 1, "articles": {}}), encoding="utf-8",
+        )
         self.build("--demo", SITE_URL="https://reads.example")
         self.build()
         demo = self.repo / "output-demo"

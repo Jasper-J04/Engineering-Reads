@@ -11,6 +11,7 @@
   <link rel="canonical" href="{{ SITEURL }}{% block canonical_path %}/{% endblock %}">
   {% endif %}
   <link rel="alternate" type="application/rss+xml" title="{{ SITENAME }} RSS" href="/rss.xml">
+  <script src="/assets/theme.js"></script>
   <link rel="stylesheet" href="/assets/site.css">
 </head>
 <body>
@@ -24,6 +25,7 @@
         <a href="/archives/"{% if section == "archives" %} aria-current="page"{% endif %}>归档</a>
         <a href="/about/"{% if section == "about" %} aria-current="page"{% endif %}>关于</a>
         <a class="rss-link" href="/rss.xml" aria-label="订阅 RSS">RSS <span aria-hidden="true">↗</span></a>
+        <button class="theme-toggle" type="button" data-theme-toggle hidden></button>
       </nav>
     </div>
   </header>
